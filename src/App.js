@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import {Clock} from './datetime';
+import {Clock, format} from './datetime';
 
 //import './covalentAPI';
 //import CovalentAPI from './covalentAPI';
@@ -117,6 +117,19 @@ class Account extends React.Component {
     )
   }
 }
+
+/*
+function Account() {
+  return (
+    <div className="account">
+      <tr><h2>{this.props.name} ({this.props.publicKey})</h2></tr>
+      {this.props.chains.map((chain)=>{
+        return <tr><ChainPortfolio publicKey={this.props.publicKey} chain={chain}/></tr>
+      })}
+    </div>
+  )
+}
+*/
 
 function App() {
   return (
