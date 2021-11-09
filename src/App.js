@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import { Clock, format } from './datetime';
-import { covalentBalances } from './covalentAPI';
+import { covalentBalances, covalentPricing } from './covalentAPI';
 
 let accounts = [
   {
@@ -15,6 +15,33 @@ let accounts = [
     chains: [1, 137]
   }
 ];
+
+// if this list gets long, best switch to a map, or do a chain specific exclude list
+let excludedCoins = [
+  "ThankYou",
+  "softbalanced.com",
+  "RicheSwap.io",
+  "LitCoin",
+  "Go Buy SpaceRat at SpaceRat.Finance",
+  "DxDex.io",
+  "aaxexchange.org",
+  "TAO Coin",
+  "BeezEX.Net",
+  "MegaDoge.Org",
+  "Zepe.io",
+  "Polyroll Token",
+]
+
+let pricingMethod = [
+  {ticker: "USDC", method: "covalentTicker"},
+];
+
+let tickerCache = covalentPricing(
+  pricingMethod
+  .filter(mapping => mapping.method === "covalentTicker")
+  .map((x) => {return x.ticker;})
+  );
+
 
 function ChainPortfolio(props) {
   const [data, setData] = useState(null);
@@ -47,8 +74,12 @@ function ChainPortfolio(props) {
                 <th>Balance</th>
                 <th>$ Quote</th>
                 <th>$ Value</th>
+                <th>contract</th>
               </tr>
-            {data.items.filter(item=> item.balance !== "0").map(item=>{
+            {data.items
+            .filter(item => !excludedCoins.includes(item.contract_name)) // remove unwanted coins
+            .filter(item => item.balance !== "0") // remove zero balance
+            .map(item => {
               const balance = item.balance / Math.pow(10, item.contract_decimals);
               return (
               <tr>
@@ -57,6 +88,7 @@ function ChainPortfolio(props) {
                 <td>{balance}</td>
                 <td>{item.quote_rate}</td>
                 <td>{item.quote_rate * balance}</td>
+                <td>{item.contract_address}</td>
               </tr>
               );
             }
