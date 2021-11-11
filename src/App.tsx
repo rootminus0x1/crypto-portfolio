@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
-import './App.css';
-import { Clock, format } from './datetime';
-import { covalentBalances } from './covalentAPI';
-import { etherscanContractABI } from './etherscanAPI';
+import { useState, useEffect } from 'react'
+import './App.css'
+import { Clock, format } from './datetime'
+import { covalentBalances } from './covalentAPI'
+import { etherscanContractABI } from './etherscanAPI'
+
 var Web3 = require('web3');
 const web3HttpProvider = 'https://mainnet.infura.io/v3/2ff4e19f0b2b49a4bdfe8d26c3fb8cb1';
 var web3 = new Web3( new Web3.providers.HttpProvider(web3HttpProvider) );
