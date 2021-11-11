@@ -1,18 +1,17 @@
 
-import React, { useState, useEffect } from 'react';
-import { DateTime } from 'luxon';
+import { useState, useEffect } from 'react';
+import dateFormat from 'dateformat';
 
 var defaultFormat = "dd-MMM-yyyy hh:mm:ss";
 
-export function setDateFormat(newFormat) {
+export function setDateFormat(newFormat: string) {
     const oldFormat = defaultFormat;
     defaultFormat = newFormat;
     return oldFormat;
 }
 
-export function format(date) {
-    const dt = new DateTime(date);
-    return dt.toFormat(defaultFormat);
+export function format(date: Date) {
+    return dateFormat(date, defaultFormat);
 }
 
 export function Clock () {

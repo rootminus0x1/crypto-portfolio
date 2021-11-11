@@ -58,8 +58,8 @@ let tickerCache = covalentPricing(
   );
 
 // selects the pricer for the symbol
-function useChainPrice(chain, symbol, address, decimals, quote) {
-  const [price, setPrice] = useState(undefined);
+function useChainPrice(chain: number, symbol: string, address: string, decimals: number, quote: number) {
+  const [price, setPrice] = useState(-1);
   
   useEffect(() => {
     if ((chain === 1) && (symbol === "yvCurve-MIM")) {
@@ -72,13 +72,13 @@ function useChainPrice(chain, symbol, address, decimals, quote) {
         console.log(contractABI);
         var contract = new web3.eth.Contract(contractABI, address);
         contract.methods.pricePerShare().call()
-        .then((result) => {
+        .then((result: number) => {
           setPrice(result / Math.pow(10, decimals));
         });
       });
     } else {
       if (quote === null) {
-        setPrice("not implemented");
+        setPrice(-1);
       } else {
         setPrice(quote);
       }
@@ -88,31 +88,66 @@ function useChainPrice(chain, symbol, address, decimals, quote) {
   return price;
 }
 
-function ChainPrice(props) {
+type ChainPriceProps = {
+  chain: number;
+  symbol: string;
+  contract: string;
+  decimals: number;
+  quote: number;
+}
+
+function ChainPrice(props: ChainPriceProps) {
   const price = useChainPrice(props.chain, props.symbol, props.contract, props.decimals, props.quote);
 
-  if (price) {
+  if (price >= 0) {
     return ( <div> ${price} </div> );
   } else {
-    return "Loading..."
+    return (( <div> Loading... </div> ));
   }  
+}
+
+type ChainPortfolioValueProps = {
+  chain: number;
+  symbol: string;
+  contract: string;
+  decimals: number;
+  quote: number;
+  balance: number;
 }
 
 // value = price * balance
 // updated each time either of price (likely) or balance (unlikely) changes
-function ChainPortfolioValue(props) {
+function ChainPortfolioValue(props: ChainPortfolioValueProps) {
   const price = useChainPrice(props.chain, props.symbol, props.contract, props.decimals, props.quote);
   if (props.balance && price) {
-    return (<div> ${(price * props.balance).toFixed(0).toLocaleString()} </div>);
+    return ( <div> ${(price * props.balance).toFixed(0).toLocaleString()} </div> );
   } else {
-    return "Loading...";
+    return ( <div> Loading... </div> );
   }
 }
 
-function ChainPortfolio(props) {
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
-  const [start] = useState(Date());
+type ChainPrortfolioProps = {
+  chain: number;
+  publicKey: string;
+}
+
+type CovalentBalance = {
+  contract_name: string;
+  balance: number;
+  contract_decimals: number; 
+  contract_ticker_symbol: string; 
+  contract_address: string; 
+  quote_rate: number;
+}
+
+type CovalentBalances = {
+  items: CovalentBalance[];
+}
+
+function ChainPortfolio(props: ChainPrortfolioProps) {
+  const [data, setData] = useState<CovalentBalances | null>(null);
+  const [error, setError] = useState("");
+  const [start] = useState(new Date());
 
   useEffect(() => {
     console.log("fetching balances for chain " + props.chain + " address " + props.publicKey);
@@ -144,9 +179,9 @@ function ChainPortfolio(props) {
           </thead>
           <tbody>
             {data.items
-            .filter(item => !excludedCoins.includes(item.contract_name)) // remove unwanted coins
-            .filter(item => item.balance !== "0") // remove zero balance
-            .map(item => {
+            .filter((item) => !excludedCoins.includes(item.contract_name)) // remove unwanted coins
+            .filter((item) => item.balance > 1) // remove zero(ish) balance
+            .map((item) => {
               const balance = item.balance / Math.pow(10, item.contract_decimals);
               return (
               <tr>
@@ -184,7 +219,7 @@ function ChainPortfolio(props) {
   );
 }
 
-function nameOfChain(id) {
+function nameOfChain(id: string | number) {
   if (id === 1) {
     return "Ethereum";
   } else if (id === 137) {
@@ -194,7 +229,13 @@ function nameOfChain(id) {
   }
 }
 
-function Account(props) {
+type AccountProps = {
+  name: string;
+  publicKey: string;
+  chains: number[];
+}
+
+function Account(props: AccountProps) {
   return (
     <div className="account">
       <h2>{props.name} ({props.publicKey})</h2>

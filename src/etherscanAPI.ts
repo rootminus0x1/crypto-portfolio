@@ -2,7 +2,7 @@ const etherscanAPIKEY = 'SRHPT93DK2SVSCR5BB8BBJNTUBQX8FQ1H9';
 const etherscanEndpoint = 'https://api.etherscan.io/api';
 
 
-export function etherscanGetBalance(address) {
+export function etherscanGetBalance(address: string) {
   var url = etherscanEndpoint
   + "?module=account"
   + "&action=balance"
@@ -13,7 +13,7 @@ export function etherscanGetBalance(address) {
   return fetch(url);
 }
 
-export function etherscanContractABI(address) {
+export function etherscanContractABI(address: string) {
     var url = etherscanEndpoint
     + "?module=contract"
     + "&action=getabi"
