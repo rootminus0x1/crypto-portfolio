@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import './App.css';
 import { Clock, format } from './datetime';
-import { covalentBalances, covalentPricing } from './covalentAPI';
+import { covalentBalances } from './covalentAPI';
 import { etherscanContractABI } from './etherscanAPI';
 var Web3 = require('web3');
 const web3HttpProvider = 'https://mainnet.infura.io/v3/2ff4e19f0b2b49a4bdfe8d26c3fb8cb1';
@@ -46,16 +46,6 @@ let excludedCoins = [
   "Polyroll Token",
   "Go Buy Polydoge",
 ]
-
-let pricingMethod = [
-  {ticker: "USDC", method: "covalentTicker"},
-];
-
-let tickerCache = covalentPricing(
-  pricingMethod
-  .filter(mapping => mapping.method === "covalentTicker")
-  .map((x) => {return x.ticker;})
-  );
 
 // selects the pricer for the symbol
 function useChainPrice(chain: number, symbol: string, address: string, decimals: number, quote: number) {
