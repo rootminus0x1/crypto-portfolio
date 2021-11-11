@@ -26,7 +26,7 @@ let accounts = [
   {
     name: "Jane",
     publicKey: "0x2f5E08Ef5A99a98336519E54F58D503F550BD9AC",
-    chains: [1]
+    chains: [1, 137]
   },
 ];
 
@@ -57,36 +57,55 @@ let tickerCache = covalentPricing(
   .map((x) => {return x.ticker;})
   );
 
-function ChainPriceEthereumFromContractPricePerShare(props) {
+// selects the pricer for the symbol
+function useChainPrice(chain, symbol, address, decimals, quote) {
   const [price, setPrice] = useState(undefined);
-
+  
   useEffect(() => {
-    etherscanContractABI(props.contract)
-    .then(response => response.json())
-    .then(json => {
-      var contractABI = JSON.parse(json.result);
-      console.log(contractABI);
-      var contract = new web3.eth.Contract(contractABI, props.contract);
-      contract.methods.pricePerShare().call()
-      .then((result) => {
-        console.log("pricePerShare => " + result);
-        setPrice(result);
+    if ((chain === 1) && (symbol === "yvCurve-MIM")) {
+      console.log("fetching price data for " + [chain, symbol, address, decimals, quote]);
+      //console.trace();
+      etherscanContractABI(address)
+      .then(response => response.json())
+      .then(json => {
+        var contractABI = JSON.parse(json.result);
+        console.log(contractABI);
+        var contract = new web3.eth.Contract(contractABI, address);
+        contract.methods.pricePerShare().call()
+        .then((result) => {
+          setPrice(result / Math.pow(10, decimals));
+        });
       });
-    });
-  });
+    } else {
+      if (quote === null) {
+        setPrice("not implemented");
+      } else {
+        setPrice(quote);
+      }
+    }
+  }, [chain, symbol, address, decimals, quote]);
 
-  return (
-    <div>
-      {price}
-    </div>
-  );
+  return price;
 }
 
 function ChainPrice(props) {
-  if ((props.chain === 1) && (props.symbol === "yvCurve-MIM")) {
-    return ( <ChainPriceEthereumFromContractPricePerShare contract={props.contract}/> );
+  const price = useChainPrice(props.chain, props.symbol, props.contract, props.decimals, props.quote);
+
+  if (price) {
+    return ( <div> ${price} </div> );
   } else {
-    return ( <div> ${props.quote} </div> );  
+    return "Loading..."
+  }  
+}
+
+// value = price * balance
+// updated each time either of price (likely) or balance (unlikely) changes
+function ChainPortfolioValue(props) {
+  const price = useChainPrice(props.chain, props.symbol, props.contract, props.decimals, props.quote);
+  if (props.balance && price) {
+    return (<div> ${(price * props.balance).toFixed(0).toLocaleString()} </div>);
+  } else {
+    return "Loading...";
   }
 }
 
@@ -96,6 +115,7 @@ function ChainPortfolio(props) {
   const [start] = useState(Date());
 
   useEffect(() => {
+    console.log("fetching balances for chain " + props.chain + " address " + props.publicKey);
     covalentBalances(props.chain, props.publicKey)
     .then(response => response.json())
     .then(
@@ -132,13 +152,23 @@ function ChainPortfolio(props) {
               <tr>
                 <td>{item.contract_ticker_symbol}</td>
                 <td>{balance}</td>
-                <td><ChainPrice 
-                  quote={item.quote_rate} 
-                  chain={props.chain} 
-                  symbol={item.contract_ticker_symbol} 
-                  contract={item.contract_address}/>
+                <td><ChainPrice
+                    chain={props.chain}
+                    symbol={item.contract_ticker_symbol} 
+                    contract={item.contract_address}
+                    decimals={item.contract_decimals}
+                    quote={item.quote_rate}
+                  /> 
                 </td>
-                <td>{item.quote_rate * balance}</td>
+                <td><ChainPortfolioValue
+                    balance={balance}
+                    chain={props.chain}
+                    symbol={item.contract_ticker_symbol} 
+                    contract={item.contract_address}
+                    decimals={item.contract_decimals}
+                    quote={item.quote_rate}
+                  />
+                </td>
               </tr>
               );
             }
@@ -178,12 +208,6 @@ function Account(props) {
 function App() {
   console.log("running App");
 
-  /*
-  useEffect(() => {
-    // setup web3
-    const intervalID = setInterval(() => { setTime(new Date()) }, 1000);
-  }, []);
-*/
   return (
     <div className="app">
       <h1>Crypto Tracker</h1>
