@@ -2,7 +2,13 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import { Clock, format } from './datetime';
 import { covalentBalances, covalentPricing } from './covalentAPI';
+import { etherscanContractABI } from './etherscanAPI';
+var Web3 = require('web3');
+const web3HttpProvider = 'https://mainnet.infura.io/v3/2ff4e19f0b2b49a4bdfe8d26c3fb8cb1';
+var web3 = new Web3( new Web3.providers.HttpProvider(web3HttpProvider) );
+console.log("web3 version: " + web3.version);
 
+/*
 let accounts = [
   {
     name: "Jane",
@@ -14,6 +20,14 @@ let accounts = [
     publicKey: "0x7375cab33FdBDD0616C70aF5531b100eb06f8592",
     chains: [1, 137]
   }
+];
+*/
+let accounts = [
+  {
+    name: "Jane",
+    publicKey: "0x2f5E08Ef5A99a98336519E54F58D503F550BD9AC",
+    chains: [1]
+  },
 ];
 
 // if this list gets long, best switch to a map, or do a chain specific exclude list
@@ -30,6 +44,7 @@ let excludedCoins = [
   "MegaDoge.Org",
   "Zepe.io",
   "Polyroll Token",
+  "Go Buy Polydoge",
 ]
 
 let pricingMethod = [
@@ -42,6 +57,38 @@ let tickerCache = covalentPricing(
   .map((x) => {return x.ticker;})
   );
 
+function ChainPriceEthereumFromContractPricePerShare(props) {
+  const [price, setPrice] = useState(undefined);
+
+  useEffect(() => {
+    etherscanContractABI(props.contract)
+    .then(response => response.json())
+    .then(json => {
+      var contractABI = JSON.parse(json.result);
+      console.log(contractABI);
+      var contract = new web3.eth.Contract(contractABI, props.contract);
+      contract.methods.pricePerShare().call()
+      .then((result) => {
+        console.log("pricePerShare => " + result);
+        setPrice(result);
+      });
+    });
+  });
+
+  return (
+    <div>
+      {price}
+    </div>
+  );
+}
+
+function ChainPrice(props) {
+  if ((props.chain === 1) && (props.symbol === "yvCurve-MIM")) {
+    return ( <ChainPriceEthereumFromContractPricePerShare contract={props.contract}/> );
+  } else {
+    return ( <div> ${props.quote} </div> );  
+  }
+}
 
 function ChainPortfolio(props) {
   const [data, setData] = useState(null);
@@ -65,17 +112,17 @@ function ChainPortfolio(props) {
   return (
     <div className="chain-portfolio">
       <h3>{nameOfChain(props.chain)}</h3>
-      <div>
-        {data ? (
-          <div>
-              <tr>
-                <th>Name</th>
-                <th>Symbol</th>
-                <th>Balance</th>
-                <th>$ Quote</th>
-                <th>$ Value</th>
-                <th>contract</th>
-              </tr>
+      {data ? (
+        <table>
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Balance</th>
+              <th>$ Quote</th>
+              <th>$ Value</th>
+            </tr>
+          </thead>
+          <tbody>
             {data.items
             .filter(item => !excludedCoins.includes(item.contract_name)) // remove unwanted coins
             .filter(item => item.balance !== "0") // remove zero balance
@@ -83,23 +130,26 @@ function ChainPortfolio(props) {
               const balance = item.balance / Math.pow(10, item.contract_decimals);
               return (
               <tr>
-                <td>{item.contract_name}</td>
                 <td>{item.contract_ticker_symbol}</td>
                 <td>{balance}</td>
-                <td>{item.quote_rate}</td>
+                <td><ChainPrice 
+                  quote={item.quote_rate} 
+                  chain={props.chain} 
+                  symbol={item.contract_ticker_symbol} 
+                  contract={item.contract_address}/>
+                </td>
                 <td>{item.quote_rate * balance}</td>
-                <td>{item.contract_address}</td>
               </tr>
               );
             }
-            )}
-          </div>
-        ) : error ? (
-          <div>ERROR: {error}</div>
-        ) : (
-          <div>Loading portfolio (since {format(start)}) ...</div>
-        )}
-      </div>
+          )}
+          </tbody>
+        </table>
+      ) : error ? (
+        <div>ERROR: {error}</div>
+      ) : (
+        <div>Loading portfolio (since {format(start)}) ...</div>
+      )}
     </div>
   );
 }
@@ -117,28 +167,33 @@ function nameOfChain(id) {
 function Account(props) {
   return (
     <div className="account">
-      <tr><h2>{props.name} ({props.publicKey})</h2></tr>
+      <h2>{props.name} ({props.publicKey})</h2>
       {props.chains.map((chain)=>{
-        return <tr><ChainPortfolio publicKey={props.publicKey} chain={chain}/></tr>
+        return <ChainPortfolio publicKey={props.publicKey} chain={chain}/>
       })}
     </div>
   )
 }
 
 function App() {
+  console.log("running App");
+
+  /*
+  useEffect(() => {
+    // setup web3
+    const intervalID = setInterval(() => { setTime(new Date()) }, 1000);
+  }, []);
+*/
   return (
-    <div className="App">
-      <header className="App-header">
-        <div>
-          <h1>Crypto Tracker</h1>
-          <Clock/>
-          <table>
-          {accounts.map((account)=>{
-            return <tr><Account name={account.name} publicKey={account.publicKey} chains={account.chains}/></tr>
-          })}
-          </table>
-        </div>
-      </header>
+    <div className="app">
+      <h1>Crypto Tracker</h1>
+      <Clock/>
+      {accounts.map((account)=>{
+        return <Account 
+        name={account.name} 
+        publicKey={account.publicKey} 
+        chains={account.chains}/>
+      })}
     </div>
   );
 }

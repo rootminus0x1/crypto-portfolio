@@ -1,6 +1,3 @@
-//var http = require('http');
-// uses the window http fetch
-
 const covalentAPIKEY = 'ckey_0d21a57dcbbd464aa0a1eb0a2ad';
 const covalentEndpoint = 'https://api.covalenthq.com/v1';
 
