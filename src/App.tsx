@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import { Clock, format } from './datetime'
-import { covalentBalances } from './covalentAPI'
-import { etherscanContractABI } from './etherscanAPI'
+import { covalentBalances } from './cryptoAPIs/covalentAPI'
+//import { Counter } from './features/counter/Counter'
+import { etherscanContractABI } from './cryptoAPIs/etherscanAPI'
 
 var Web3 = require('web3');
 const web3HttpProvider = 'https://mainnet.infura.io/v3/2ff4e19f0b2b49a4bdfe8d26c3fb8cb1';
 var web3 = new Web3( new Web3.providers.HttpProvider(web3HttpProvider) );
 console.log("web3 version: " + web3.version);
+
 
 /*
 let accounts = [
@@ -50,7 +52,7 @@ let excludedCoins = [
 
 // selects the pricer for the symbol
 function useChainPrice(chain: number, symbol: string, address: string, decimals: number, quote: number) {
-  const [price, setPrice] = useState(-1);
+  const [price, setPrice] = useState<number>(NaN);
   
   useEffect(() => {
     if ((chain === 1) && (symbol === "yvCurve-MIM")) {
@@ -68,11 +70,7 @@ function useChainPrice(chain: number, symbol: string, address: string, decimals:
         });
       });
     } else {
-      if (quote === null) {
-        setPrice(-1);
-      } else {
-        setPrice(quote);
-      }
+      setPrice(quote);
     }
   }, [chain, symbol, address, decimals, quote]);
 
@@ -110,10 +108,10 @@ type ChainPortfolioValueProps = {
 // updated each time either of price (likely) or balance (unlikely) changes
 function ChainPortfolioValue(props: ChainPortfolioValueProps) {
   const price = useChainPrice(props.chain, props.symbol, props.contract, props.decimals, props.quote);
-  if (props.balance && price) {
-    return ( <div> ${(price * props.balance).toFixed(0).toLocaleString()} </div> );
-  } else {
+  if (isNaN(price)) {
     return ( <div> Loading... </div> );
+  } else {
+    return ( <div> ${(price * props.balance).toFixed(0).toLocaleString()} </div> );
   }
 }
 
@@ -174,6 +172,7 @@ function ChainPortfolio(props: ChainPrortfolioProps) {
             .filter((item) => item.balance > 1) // remove zero(ish) balance
             .map((item) => {
               const balance = item.balance / Math.pow(10, item.contract_decimals);
+              const price = item.quote_rate === null ? NaN : item.quote_rate; 
               return (
               <tr>
                 <td>{item.contract_ticker_symbol}</td>
@@ -183,7 +182,7 @@ function ChainPortfolio(props: ChainPrortfolioProps) {
                     symbol={item.contract_ticker_symbol} 
                     contract={item.contract_address}
                     decimals={item.contract_decimals}
-                    quote={item.quote_rate}
+                    quote={price}
                   /> 
                 </td>
                 <td><ChainPortfolioValue
@@ -192,7 +191,7 @@ function ChainPortfolio(props: ChainPrortfolioProps) {
                     symbol={item.contract_ticker_symbol} 
                     contract={item.contract_address}
                     decimals={item.contract_decimals}
-                    quote={item.quote_rate}
+                    quote={price}
                   />
                 </td>
               </tr>
